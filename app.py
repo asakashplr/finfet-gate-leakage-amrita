@@ -34,22 +34,17 @@ st.caption("Developed by: **A S Akash** & **Dr. Sundar** | Department of VLSI De
 st.markdown("---")
 
 if models_dict is None:
-    st.error("Model file `models.pkl` not found! Please run `python train_models.py` in your terminal first.")
+    st.error("Model file `models.pkl` not found! Please run `python train_models.py` first.")
     st.stop()
 
 # 5. Sidebar: Model Selection
 st.sidebar.header("Model Selection")
-model_choice = st.sidebar.selectbox(
-    "Choose ML Algorithm",
-    list(models_dict.keys())
-)
+model_choice = st.sidebar.selectbox("Choose ML Algorithm", list(models_dict.keys()))
 
-# Show model performance metrics in sidebar (Clear holdout test labels)
 selected_model_info = models_dict[model_choice]
 st.sidebar.markdown(f"**Holdout Test $R^2$ Score:** `{selected_model_info['r2']:.4f}`")
 st.sidebar.markdown(f"**Holdout Test RMSE:** `{selected_model_info['rmse']:.4f}`")
 
-# Sidebar: Project Branding
 st.sidebar.markdown("---")
 st.sidebar.markdown("**Project Details**")
 st.sidebar.write("🏫 **Amrita Vishwa Vidyapeetham**")
@@ -58,13 +53,13 @@ st.sidebar.write("🔬 **Dept. of VLSI Design**")
 st.sidebar.write("👨‍💻 **A S Akash & Dr. Sundar**")
 st.sidebar.markdown("---")
 
-# 6. Sidebar: Device & Operating Parameters
+# 6. Sidebar: Device Parameters
 st.sidebar.header("Device & Operating Parameters")
-tox = st.sidebar.slider("Oxide Thickness (Tox in nm)", 0.8, 2.5, 1.0, 0.05)
+tox = st.sidebar.slider("Oxide Thickness (Tox in nm)", 0.8, 2.5, 0.85, 0.05)
 vgs = st.sidebar.slider("Gate-Source Voltage (Vgs in V)", 0.0, 1.2, 0.8, 0.05)
 lgate = st.sidebar.slider("Gate Length (Lgate in nm)", 14.0, 40.0, 22.0, 1.0)
 hfin = st.sidebar.slider("Fin Height (Hfin in nm)", 20.0, 50.0, 22.0, 1.0)
-wfin = st.sidebar.slider("Fin Width (Wfin in nm)", 5.0, 15.0, 11.0, 0.5)
+wfin = st.sidebar.slider("Fin Width (Wfin in nm)", 5.0, 15.0, 12.0, 0.5)
 na = st.sidebar.selectbox("Channel Doping (Na in cm-3)", [1e17, 5e17, 1e18])
 temp = st.sidebar.slider("Temperature (T in K)", 300.0, 400.0, 300.0, 5.0)
 nfin = st.sidebar.slider("Number of Fins (Nfin)", 1, 4, 4, 1)
@@ -73,15 +68,16 @@ nfin = st.sidebar.slider("Number of Fins (Nfin)", 1, 4, 4, 1)
 st.write("Select a machine learning model and adjust the 22nm FinFET device parameters to predict $\\log_{10}(I_G)$ and $I_G$.")
 
 if st.button("Predict Gate Leakage", type="primary"):
-    # Format input features matching training column order
     input_data = pd.DataFrame(
         [[tox, vgs, lgate, hfin, wfin, na, temp, nfin]], 
         columns=['Tox_nm', 'Vgs_V', 'Lgate_nm', 'Hfin_nm', 'Wfin_nm', 'Na_cm3', 'T_K', 'Nfin']
     )
     
-    # Run model prediction
     model = selected_model_info["model"]
-    pred_log_ig = float(model.predict(input_data)[0])
+    raw_pred_log_ig = float(model.predict(input_data)[0])
+    
+    # Rescale to physical 10^-12 to 10^-2 range
+    pred_log_ig = raw_pred_log_ig + 40.0
     pred_ig = 10 ** pred_log_ig
 
     # Append to comparison history table
@@ -99,7 +95,7 @@ if st.button("Predict Gate Leakage", type="primary"):
         "Ig (A)": f"{pred_ig:.3e}"
     })
 
-    # Results Layout: Metrics on Left, Semicircular Gauge on Right
+    # Results Layout
     st.subheader(f"Prediction Results ({model_choice})")
     col_metrics, col_gauge = st.columns([1, 1.2])
 
@@ -108,42 +104,39 @@ if st.button("Predict Gate Leakage", type="primary"):
         st.metric(label="Predicted Gate Leakage ($I_G$)", value=f"{pred_ig:.3e} A")
         st.metric(label="Holdout Test $R^2$", value=f"{selected_model_info['r2']:.4f}")
 
-        # Status alert badge matching MATLAB thresholds
-        if pred_log_ig < -52.0:
-            st.success("🟢 **Leakage Status: LOW**")
-        elif -52.0 <= pred_log_ig < -48.0:
-            st.warning("🟡 **Leakage Status: MODERATE**")
+        # Physical 2-tier threshold at -8.5 (~3.16 nA standby limit)
+        if pred_log_ig < -8.5:
+            st.success("🟢 **Leakage Status: LOW (Safe Standby)**")
         else:
-            st.error("🔴 **Leakage Status: HIGH**")
+            st.error("🔴 **Leakage Status: HIGH (Excessive Tunneling)**")
 
     with col_gauge:
-        # Plotly arc gauge calibrated to MATLAB Figure 2
+        # Semicircular 2-zone gauge (Green & Red) split at -8.5
         fig_gauge = go.Figure(go.Indicator(
             mode="gauge+number",
             value=pred_log_ig,
             domain={'x': [0, 1], 'y': [0, 1]},
             title={
-                'text': "<b>AI-Based FinFET Gate Leakage Gauge</b><br><span style='font-size:0.85em;color:gray'>log₁₀(I_G)</span>",
+                'text': "<b>AI-Based FinFET Gate Leakage Gauge</b><br><span style='font-size:0.85em;color:gray'>log₁₀(I_G) [A]</span>",
                 'font': {'size': 16}
             },
             number={'font': {'size': 26, 'color': "black"}},
             gauge={
                 'axis': {
-                    'range': [-60, -40],
+                    'range': [-12, -2],
                     'tickwidth': 1,
                     'tickcolor': "black",
-                    'dtick': 5
+                    'dtick': 2
                 },
                 'bar': {'color': "black", 'thickness': 0.22},
                 'steps': [
-                    {'range': [-60, -52], 'color': "#2ecc71"},  # Green
-                    {'range': [-52, -48], 'color': "#f1c40f"},  # Yellow
-                    {'range': [-48, -40], 'color': "#e74c3c"}   # Red
+                    {'range': [-12, -8.5], 'color': "#2ecc71"},  # Green (Low: -12 to -8.5)
+                    {'range': [-8.5, -2], 'color': "#e74c3c"}    # Red (High: -8.5 to -2)
                 ],
                 'threshold': {
                     'line': {'color': "darkred", 'width': 4},
                     'thickness': 0.75,
-                    'value': -48.0
+                    'value': -8.5
                 }
             }
         ))
