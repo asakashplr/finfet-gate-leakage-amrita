@@ -55,7 +55,14 @@ st.sidebar.markdown("---")
 
 # 6. Sidebar: Device Parameters
 st.sidebar.header("Device & Operating Parameters")
-tox = st.sidebar.slider("Oxide Thickness (Tox in nm)",0,0.05,0.10,0.4,0.65, 0.8, 2.5, 0.85, 0.05)
+# min_value=0.05, max_value=2.50, default=0.85, step=0.05
+tox = st.sidebar.slider(
+    "Oxide Thickness (Tox in nm)",
+    min_value=0.05,
+    max_value=2.50,
+    value=0.85,
+    step=0.05
+)
 vgs = st.sidebar.slider("Gate-Source Voltage (Vgs in V)", 0.0, 1.2, 0.8, 0.05)
 lgate = st.sidebar.slider("Gate Length (Lgate in nm)", 14.0, 40.0, 22.0, 1.0)
 hfin = st.sidebar.slider("Fin Height (Hfin in nm)", 20.0, 50.0, 22.0, 1.0)
