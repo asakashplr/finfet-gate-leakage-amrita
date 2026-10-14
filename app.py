@@ -3,15 +3,20 @@ import numpy as np
 import pandas as pd
 import pickle
 import os
+import plotly.graph_objects as go
 
-# Page Configuration
+# 1. Page Configuration
 st.set_page_config(
     page_title="Gate leakage prediction - Amrita Vishwa Vidyapeetham",
     page_icon="⚡",
     layout="wide"
 )
 
-# Cache loaded models so the app runs fast
+# 2. Session State for Comparison History Table
+if "history" not in st.session_state:
+    st.session_state.history = []
+
+# 3. Cache loaded models
 @st.cache_resource
 def load_all_models():
     model_path = "models.pkl"
@@ -22,7 +27,7 @@ def load_all_models():
 
 models_dict = load_all_models()
 
-# App Header & Institutional Affiliation
+# 4. App Header & Institutional Affiliation
 st.title("22nm FinFET Gate Leakage Predictor")
 st.subheader("Amrita Vishwa Vidyapeetham, Amritapuri Campus")
 st.caption("Developed by: **A S Akash** & **Dr. Sundar** | Department of VLSI Design")
@@ -32,17 +37,17 @@ if models_dict is None:
     st.error("Model file `models.pkl` not found! Please run `python train_models.py` in your terminal first.")
     st.stop()
 
-# Sidebar: Model Selection
+# 5. Sidebar: Model Selection
 st.sidebar.header("Model Selection")
 model_choice = st.sidebar.selectbox(
     "Choose ML Algorithm",
     list(models_dict.keys())
 )
 
-# Show model performance metrics in sidebar
+# Show model performance metrics in sidebar (Clear holdout test labels)
 selected_model_info = models_dict[model_choice]
-st.sidebar.markdown(f"**Test Set $R^2$ Score:** `{selected_model_info['r2']:.4f}`")
-st.sidebar.markdown(f"**Test Set RMSE:** `{selected_model_info['rmse']:.4f}`")
+st.sidebar.markdown(f"**Holdout Test $R^2$ Score:** `{selected_model_info['r2']:.4f}`")
+st.sidebar.markdown(f"**Holdout Test RMSE:** `{selected_model_info['rmse']:.4f}`")
 
 # Sidebar: Project Branding
 st.sidebar.markdown("---")
@@ -53,41 +58,112 @@ st.sidebar.write("🔬 **Dept. of VLSI Design**")
 st.sidebar.write("👨‍💻 **A S Akash & Dr. Sundar**")
 st.sidebar.markdown("---")
 
-# Sidebar: Device Parameters
+# 6. Sidebar: Device & Operating Parameters
 st.sidebar.header("Device & Operating Parameters")
-tox = st.sidebar.slider("Oxide Thickness (Tox in nm)", 0.8, 2.5, 1.2, 0.05)
-vgs = st.sidebar.slider("Gate-Source Voltage (Vgs in V)", 0.0, 1.2, 0.6, 0.05)
+tox = st.sidebar.slider("Oxide Thickness (Tox in nm)", 0.8, 2.5, 1.0, 0.05)
+vgs = st.sidebar.slider("Gate-Source Voltage (Vgs in V)", 0.0, 1.2, 0.8, 0.05)
 lgate = st.sidebar.slider("Gate Length (Lgate in nm)", 14.0, 40.0, 22.0, 1.0)
-hfin = st.sidebar.slider("Fin Height (Hfin in nm)", 20.0, 50.0, 30.0, 1.0)
-wfin = st.sidebar.slider("Fin Width (Wfin in nm)", 5.0, 15.0, 8.0, 0.5)
+hfin = st.sidebar.slider("Fin Height (Hfin in nm)", 20.0, 50.0, 22.0, 1.0)
+wfin = st.sidebar.slider("Fin Width (Wfin in nm)", 5.0, 15.0, 11.0, 0.5)
 na = st.sidebar.selectbox("Channel Doping (Na in cm-3)", [1e17, 5e17, 1e18])
 temp = st.sidebar.slider("Temperature (T in K)", 300.0, 400.0, 300.0, 5.0)
-nfin = st.sidebar.slider("Number of Fins (Nfin)", 1, 4, 1, 1)
+nfin = st.sidebar.slider("Number of Fins (Nfin)", 1, 4, 4, 1)
 
-# Main Prediction Section
+# 7. Main Prediction Section
 st.write("Select a machine learning model and adjust the 22nm FinFET device parameters to predict $\\log_{10}(I_G)$ and $I_G$.")
 
 if st.button("Predict Gate Leakage", type="primary"):
     # Format input features matching training column order
-    input_data = pd.DataFrame([[tox, vgs, lgate, hfin, wfin, na, temp, nfin]], 
-                              columns=['Tox_nm', 'Vgs_V', 'Lgate_nm', 'Hfin_nm', 'Wfin_nm', 'Na_cm3', 'T_K', 'Nfin'])
+    input_data = pd.DataFrame(
+        [[tox, vgs, lgate, hfin, wfin, na, temp, nfin]], 
+        columns=['Tox_nm', 'Vgs_V', 'Lgate_nm', 'Hfin_nm', 'Wfin_nm', 'Na_cm3', 'T_K', 'Nfin']
+    )
     
-    # Run inference using the selected model
+    # Run model prediction
     model = selected_model_info["model"]
     pred_log_ig = float(model.predict(input_data)[0])
     pred_ig = 10 ** pred_log_ig
 
-    # Display Results Dashboard
+    # Append to comparison history table
+    st.session_state.history.append({
+        "Model": model_choice,
+        "Tox (nm)": tox,
+        "Vgs (V)": vgs,
+        "Lgate (nm)": lgate,
+        "Hfin (nm)": hfin,
+        "Wfin (nm)": wfin,
+        "Na (cm⁻³)": f"{na:.1e}",
+        "Temp (K)": temp,
+        "Nfin": nfin,
+        "log10(Ig)": f"{pred_log_ig:.4f}",
+        "Ig (A)": f"{pred_ig:.3e}"
+    })
+
+    # Results Layout: Metrics on Left, Semicircular Gauge on Right
     st.subheader(f"Prediction Results ({model_choice})")
-    col1, col2, col3 = st.columns(3)
-    with col1:
+    col_metrics, col_gauge = st.columns([1, 1.2])
+
+    with col_metrics:
         st.metric(label="Predicted $\\log_{10}(I_G)$", value=f"{pred_log_ig:.4f}")
-    with col2:
         st.metric(label="Predicted Gate Leakage ($I_G$)", value=f"{pred_ig:.3e} A")
-    with col3:
-        st.metric(label="Model Validation $R^2$", value=f"{selected_model_info['r2']:.4f}")
-        
-    st.success(f"Inference successfully calculated using the trained {model_choice} model!")
+        st.metric(label="Holdout Test $R^2$", value=f"{selected_model_info['r2']:.4f}")
+
+        # Status alert badge matching MATLAB thresholds
+        if pred_log_ig < -52.0:
+            st.success("🟢 **Leakage Status: LOW**")
+        elif -52.0 <= pred_log_ig < -48.0:
+            st.warning("🟡 **Leakage Status: MODERATE**")
+        else:
+            st.error("🔴 **Leakage Status: HIGH**")
+
+    with col_gauge:
+        # Plotly arc gauge calibrated to MATLAB Figure 2
+        fig_gauge = go.Figure(go.Indicator(
+            mode="gauge+number",
+            value=pred_log_ig,
+            domain={'x': [0, 1], 'y': [0, 1]},
+            title={
+                'text': "<b>AI-Based FinFET Gate Leakage Gauge</b><br><span style='font-size:0.85em;color:gray'>log₁₀(I_G)</span>",
+                'font': {'size': 16}
+            },
+            number={'font': {'size': 26, 'color': "black"}},
+            gauge={
+                'axis': {
+                    'range': [-60, -40],
+                    'tickwidth': 1,
+                    'tickcolor': "black",
+                    'dtick': 5
+                },
+                'bar': {'color': "black", 'thickness': 0.22},
+                'steps': [
+                    {'range': [-60, -52], 'color': "#2ecc71"},  # Green
+                    {'range': [-52, -48], 'color': "#f1c40f"},  # Yellow
+                    {'range': [-48, -40], 'color': "#e74c3c"}   # Red
+                ],
+                'threshold': {
+                    'line': {'color': "darkred", 'width': 4},
+                    'thickness': 0.75,
+                    'value': -48.0
+                }
+            }
+        ))
+
+        fig_gauge.update_layout(
+            height=300,
+            margin=dict(l=20, r=20, t=40, b=20),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)"
+        )
+        st.plotly_chart(fig_gauge, use_container_width=True)
+
+# 8. Comparison History Table
+if st.session_state.history:
+    st.markdown("---")
+    st.subheader("📋 Prediction History & Parameter Comparison")
+    st.dataframe(pd.DataFrame(st.session_state.history), use_container_width=True)
+    if st.button("Clear History"):
+        st.session_state.history = []
+        st.rerun()
 
 st.markdown("---")
 st.markdown("<p style='text-align: center; color: gray;'>M.Tech VLSI Thesis Research Project • Amrita Vishwa Vidyapeetham, Amritapuri</p>", unsafe_allow_html=True)
