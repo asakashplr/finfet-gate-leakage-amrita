@@ -30,7 +30,7 @@ models_dict = load_all_models()
 # 4. App Header & Institutional Affiliation
 st.title("22nm FinFET Gate Leakage Predictor")
 st.subheader("Amrita Vishwa Vidyapeetham, Amritapuri Campus")
-st.caption("Developed by: **A S Akash** & **Dr. Sundar** | Department of VLSI Design")
+st.caption("Developed by: **A S Akash** & **Dr. Sundar** | Department of ECE -MTech VLSI Design 2025-27")
 st.markdown("---")
 
 if models_dict is None:
