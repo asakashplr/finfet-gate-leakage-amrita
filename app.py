@@ -23,7 +23,7 @@ st.markdown("""
     <h4>Developed by A. S. Akash & Dr Sundaresh Amrita Chaithanya</h4>
     <p>M.Tech VLSI Design</p>
     <p>Amrita School of Engineering, Amritapuri</p>
-    <p>FinFET Gate Leakage Prediction using Machine Learning</p>
+    <p>Semiconductor device Gate Leakage current Prediction using Artificial Intelligence</p>
     <small>Academic Project | 2026</small>
 </div>
 """, unsafe_allow_html=True)
