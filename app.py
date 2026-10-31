@@ -37,7 +37,7 @@ FEATURE_LABELS = {
 # Reference ranges from the previously shared synthetic-data generator.
 # Replace these with actual training-data ranges if they differ.
 REFERENCE_RANGES = {
-    "Tox_nm": (0.8, 2.0),
+    "Tox_nm": (0.02, 4.0),
     "Vgs_V": (0.0, 1.0),
     "Lgate_nm": (18.0, 26.0),
     "Hfin_nm": (20.0, 35.0),
