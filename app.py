@@ -18,7 +18,7 @@ st.set_page_config(
 )
 
 st.title("⚡ 22nm FinFET Gate Leakage Predictor")
-st.markdown("### Amrita School of Engineering | VLSI Design")
+st.markdown("### Developed by A S AKASH and Dr Sundar , Amrita School of Engineering  Amritapuri| VLSI Design")
 
 # =========================================================
 # LOAD TRAINED MODELS
