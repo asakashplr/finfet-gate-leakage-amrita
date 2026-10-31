@@ -108,9 +108,6 @@ if st.button("Predict Gate Leakage", type="primary"):
     # Original offset
     pred_log_ig = raw_pred_log_ig +40
 
-    # Convert log leakage to current
-    pred_ig = 10 ** pred_log_ig
-
     # =====================================================
     # HIGH / LOW CLASSIFICATION - ORIGINAL THRESHOLD
     # =====================================================
