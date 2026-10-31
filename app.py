@@ -198,7 +198,7 @@ if st.button("Predict Gate Leakage", type="primary"):
         "Temperature": Temp,
         "Nfin": Nfin,
         "log10(Ig)": pred_log_ig,
-        "Ig (A)": pred_ig,
+
         "Status": status
     })
 
