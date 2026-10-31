@@ -106,7 +106,7 @@ if st.button("Predict Gate Leakage", type="primary"):
     raw_pred_log_ig = float(selected_model.predict(input_data)[0])
 
     # Original offset
-    pred_log_ig = raw_pred_log_ig 
+    pred_log_ig = raw_pred_log_ig +40
 
     # Convert log leakage to current
     pred_ig = 10 ** pred_log_ig
