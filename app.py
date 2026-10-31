@@ -52,7 +52,31 @@ model_rmse = models[model_name]["rmse"]
 
 st.sidebar.metric("Holdout R²", f"{model_r2:.4f}")
 st.sidebar.metric("Holdout RMSE", f"{model_rmse:.4f}")
+# 4. App Header & Institutional Affiliation
+st.title("22nm FinFET Gate Leakage Predictor")
+st.subheader("Amrita Vishwa Vidyapeetham, Amritapuri Campus")
+st.caption("Developed by: **A S Akash** & **Dr. Sundar** | Department of ECE -MTech VLSI Design 2025-27")
+st.markdown("---")
 
+if models_dict is None:
+    st.error("Model file models.pkl not found! Please run python train_models.py first.")
+    st.stop()
+
+# 5. Sidebar: Model Selection
+st.sidebar.header("Model Selection")
+model_choice = st.sidebar.selectbox("Choose ML Algorithm", list(models_dict.keys()))
+
+selected_model_info = models_dict[model_choice]
+st.sidebar.markdown(f"**Holdout Test $R^2$ Score:** {selected_model_info['r2']:.4f}")
+st.sidebar.markdown(f"**Holdout Test RMSE:** {selected_model_info['rmse']:.4f}")
+
+st.sidebar.markdown("---")
+st.sidebar.markdown("**Project Details**")
+st.sidebar.write("🏫 **Amrita Vishwa Vidyapeetham**")
+st.sidebar.write("📍 **Amritapuri Campus**")
+st.sidebar.write("🔬 **Dept. of VLSI Design**")
+st.sidebar.write("👨‍💻 **A S Akash & Dr. Sundar**")
+st.sidebar.markdown("---")
 # =========================================================
 # DEVICE PARAMETERS
 # =========================================================
