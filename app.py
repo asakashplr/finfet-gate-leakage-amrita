@@ -75,7 +75,7 @@ with col1:
     Tox = st.slider("Oxide Thickness (nm)", 0.05, 2.50, 0.85, 0.05)
     Vgs = st.slider("Gate Voltage Vgs (V)", 0.0, 1.2, 0.8, 0.01)
     Lgate = st.slider("Gate Length (nm)", 14.0, 40.0, 22.0, 1.0)
-    Hfin =  st.slider("Fin Width (nm)", 5.0, 15.0, 11.0, 1.0)
+    Hfin =  st.slider("Fin Width (nm)", 5.0, 35.0, 11.0, 1.0)
 
 with col2:
     Wfin = st.slider("Fin Width (nm)", 5.0, 15.0, 12.0, 1.0)
