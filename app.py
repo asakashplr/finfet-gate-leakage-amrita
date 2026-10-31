@@ -137,11 +137,8 @@ if st.button("Predict Gate Leakage", type="primary"):
             f"{pred_log_ig:.4f}"
         )
 
-    with result2:
-        st.metric(
-            "Predicted Gate Leakage Current",
-            f"{pred_ig:.4e} A"
-        )
+
+        
 
     st.markdown(
         f"<h2 style='color:{status_color};'>"
