@@ -19,7 +19,7 @@ st.markdown("---")
 
 st.markdown("""
 <div style="text-align:center; padding:15px;">
-    <h4>Developed by A. S. Akash & Dr Sundaresh Amrita Chaithanya</h4>
+    <h4>Developed by A. S. Akash & Dr Sundar </h4>
     <p>M.Tech VLSI Design</p>
     <p>Amrita School of Engineering, Amritapuri</p>
     <p>Semiconductor device Gate Leakage current Prediction using Artificial Intelligence</p>
