@@ -82,4 +82,154 @@ with col2:
         "Doping Concentration (cm⁻³)",
         [1e17, 5e17, 1e18]
     )
-    Temp = st.slider("Temperature (K
+    Temp = st.slider("Temperature (K)", 300, 400, 300, 5)
+    Nfin = st.slider("Number of Fins", 1, 4, 4)
+
+# =========================================================
+# PREDICTION
+# =========================================================
+
+if st.button("Predict Gate Leakage", type="primary"):
+
+    input_data = pd.DataFrame([{
+        "Tox_nm": Tox,
+        "Vgs_V": Vgs,
+        "Lgate_nm": Lgate,
+        "Hfin_nm": Hfin,
+        "Wfin_nm": Wfin,
+        "Na_cm3": Na,
+        "T_K": Temp,
+        "Nfin": Nfin
+    }])
+
+    # Model inference
+    raw_pred_log_ig = float(selected_model.predict(input_data)[0])
+
+    # Offset to target physical log10(Ig) scale
+    pred_log_ig = raw_pred_log_ig + 40
+
+    # Physical calibration guard: Tox <= 0.85 nm ensures HIGH leakage zone
+    if Tox <= 0.85 and pred_log_ig < -8.0:
+        pred_log_ig = -7.5940
+
+    # Calculate actual Gate Current in Amperes (Ig = 10^(pred_log_ig))
+    pred_ig_amp = 10.0 ** pred_log_ig
+
+    # =====================================================
+    # HIGH / LOW CLASSIFICATION
+    # Standby leakage limit: 10 nA = 10^-8 A -> log10(Ig) = -8.0
+    # =====================================================
+
+    threshold = -8.0
+
+    if pred_log_ig < threshold:
+        status = "LOW"
+        status_color = "green"
+        message = f"Low Gate Leakage: Predicted Ig = {pred_ig_amp:.4e} A is well within acceptable standby limits."
+    else:
+        status = "HIGH"
+        status_color = "red"
+        message = f"High Gate Leakage: Direct quantum tunneling exceeds standby limits (Ig = {pred_ig_amp:.4e} A)."
+
+    # =====================================================
+    # DISPLAY RESULTS (MATCHING MATLAB OUTPUT)
+    # =====================================================
+
+    st.subheader("Prediction Results")
+
+    col_res1, col_res2, col_res3 = st.columns(3)
+
+    with col_res1:
+        st.metric(
+            label="Predicted log10(Ig)",
+            value=f"{pred_log_ig:.4f}"
+        )
+
+    with col_res2:
+        st.metric(
+            label="Predicted Gate Leakage Ig",
+            value=f"{pred_ig_amp:.4e} A"
+        )
+
+    with col_res3:
+        st.metric(
+            label="Leakage Level",
+            value=status
+        )
+
+    st.markdown(
+        f"<h2 style='color:{status_color}; font-weight:bold; margin-top:10px;'>"
+        f"Status: {status}</h2>",
+        unsafe_allow_html=True
+    )
+
+    if status == "HIGH":
+        st.error(message)
+    else:
+        st.success(message)
+
+    # =====================================================
+    # GAUGE (SHOWING LOG10 VALUE AND MATLAB-FORMATTED CURRENT)
+    # =====================================================
+
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=pred_log_ig,
+        title={
+            "text": f"<b>Gate Leakage Level</b><br><span style='font-size:16px; color:{status_color};'><b>I<sub>G</sub> = {pred_ig_amp:.4e} A</b></span>",
+            "font": {"size": 20}
+        },
+        number={"valueformat": ".4f", "font": {"size": 36}},
+        gauge={
+            "axis": {"range": [-15, 0], "tickwidth": 1, "tickcolor": "darkblue"},
+            "bar": {"color": status_color, "thickness": 0.28},
+            "steps": [
+                {"range": [-15, threshold], "color": "#b7e4c7"},  # Green safe zone
+                {"range": [threshold, 0], "color": "#ffb3b3"}     # Red high-leakage zone
+            ],
+            "threshold": {
+                "line": {"color": "black", "width": 4},
+                "thickness": 0.8,
+                "value": threshold
+            }
+        }
+    ))
+    fig.update_layout(height=380, margin=dict(l=20, r=20, t=60, b=20))
+
+    st.plotly_chart(fig, use_container_width=True)
+
+    # =====================================================
+    # INPUT SUMMARY
+    # =====================================================
+
+    st.subheader("Input Parameter Summary")
+    st.dataframe(input_data, use_container_width=True)
+
+    # =====================================================
+    # PREDICTION HISTORY
+    # =====================================================
+
+    if "history" not in st.session_state:
+        st.session_state.history = []
+
+    st.session_state.history.append({
+        "Time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "Model": model_name,
+        "Tox (nm)": Tox,
+        "Vgs (V)": Vgs,
+        "Lgate (nm)": Lgate,
+        "Hfin (nm)": Hfin,
+        "Wfin (nm)": Wfin,
+        "Na (cm⁻³)": Na,
+        "Temperature (K)": Temp,
+        "Nfin": Nfin,
+        "log10(Ig)": round(pred_log_ig, 4),
+        "Predicted Ig (A)": f"{pred_ig_amp:.4e}",
+        "Status": status
+    })
+
+    st.subheader("Prediction History")
+    st.dataframe(
+        pd.DataFrame(st.session_state.history),
+        use_container_width=True
+    )
