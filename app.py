@@ -19,7 +19,7 @@ st.markdown("---")
 
 st.markdown("""
 <div style="text-align:center; padding:15px;">
-    <h4>Developed by A. S. Akash & Dr Sundar</h4>
+    <h4>Developed by A. S. Akash & Dr Sundaresh Amrita Chaithanya</h4>
     <p>M.Tech VLSI Design</p>
     <p>Amrita School of Engineering, Amritapuri</p>
     <p>Semiconductor device Gate Leakage current Prediction using Artificial Intelligence</p>
@@ -30,7 +30,7 @@ st.title("⚡ 22nm FinFET Gate Leakage Predictor")
 st.markdown("### Developed by A S AKASH and Dr Sundar , Amrita School of Engineering  Amritapuri| VLSI Design")
 
 # =========================================================
-# LOAD TRAINED MODELS
+# LOAD TRAINED MODEL (DEFAULT: BEST PERFORMING ANN)
 # =========================================================
 
 @st.cache_resource
@@ -44,23 +44,20 @@ if not os.path.exists("models.pkl"):
 
 models = load_models()
 
-# =========================================================
-# SIDEBAR - MODEL SELECTION
-# =========================================================
-
-st.sidebar.header("Model Selection")
-
-model_name = st.sidebar.selectbox(
-    "Select Machine Learning Model",
-    list(models.keys())
-)
+# Automatically select Artificial Neural Network (ANN) as the default best model
+if "Artificial Neural Network (ANN)" in models:
+    model_name = "Artificial Neural Network (ANN)"
+elif "ANN" in models:
+    model_name = "ANN"
+else:
+    model_name = list(models.keys())[0]
 
 selected_model = models[model_name]["model"]
 model_r2 = models[model_name]["r2"]
 model_rmse = models[model_name]["rmse"]
 
-st.sidebar.metric("Holdout R²", f"{model_r2:.4f}")
-st.sidebar.metric("Holdout RMSE", f"{model_rmse:.4f}")
+# Display model metrics in a clean top banner instead of sidebar
+st.info(f"**Model Engine:** {model_name} | **Holdout R²:** {model_r2:.4f} | **Holdout RMSE:** {model_rmse:.4f}")
 
 # =========================================================
 # DEVICE PARAMETERS
@@ -205,10 +202,6 @@ if st.button("Predict Gate Leakage", type="primary"):
         "Prediction Completed.\nStatus: LOW (< -8.5) | HIGH (>= -8.5). All warnings resolved.",
         language="text"
     )
-
-    # Console terminal logging
-    print("\nPrediction Completed.")
-    print("Status: LOW (< -8.5) | HIGH (>= -8.5). All warnings resolved.\n")
 
     # =====================================================
     # INPUT SUMMARY
